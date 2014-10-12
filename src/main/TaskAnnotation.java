@@ -25,7 +25,6 @@ public class TaskAnnotation {
  * имяКласса [имяПоля1 = значение поля1, имяПоля2 = значение поля2]
  *
  * @param clazz Класс который нужно обработать
- *
  * @return String
  */
     public String mkString(Class clazz) throws IllegalAccessException, InvocationTargetException, InstantiationException {
@@ -48,11 +47,12 @@ public class TaskAnnotation {
 
             String fieldValue = "";
 
+            field.setAccessible(true); // Делаем значение метода доступным, независимо от его модификатора приватности
 
-            if (isAnnotationMaxAmount(field)) {     // Проверка на аннотацию MaxAmountOfDisplayedObjects
+            if (field.isAnnotationPresent(MaxAmountOfDisplayedObjects.class)) {  // Проверка на аннотацию MaxAmountOfDisplayedObjects
 
                 if (field.getType().equals(Map.class)) {
-                    fieldValue = getFieldValue(field, ValueType.MAP_VALUE );      // Возвращение значений Map'a
+                    fieldValue = getFieldValue(field, ValueType.MAP_VALUE );     // Возвращение значений Map'a
 
                 } else if (field.getType().equals(Iterable.class)) {
                    fieldValue = getFieldValue(field, ValueType.ITERABLE_VALUE ); // Возвращение значений Iterable
@@ -73,26 +73,33 @@ public class TaskAnnotation {
         Method[] methods = clazz.getDeclaredMethods();
 
         for (Method method : methods) {
+
+            method.setAccessible(true);  // Делаем значение метода доступным, независимо от его модификатора приватности
+
             if (method.isAnnotationPresent(ResultOfTheMethod.class)) { // Проверка на аннотацию ResultOfTheMethod
 
                 Class[] paramTypes = method.getParameterTypes();
 
                 if (paramTypes.length == 0) {
+
                     String resultOfMethod = "";
 
-                        resultOfMethod = getFieldValue(ValueType.METHOD_VALUE,method);
-
+                    resultOfMethod = getFieldValue(ValueType.METHOD_VALUE,method);
 
                     list.add(method.getName() + p + resultOfMethod);
-
                 }
             }
         }
 
-   return result + list.toString();
-
+     return result + list.toString();
     }
 
+    /**
+     * Возвращает имя поля
+     *
+     * @param field Обрабатываемое поле
+     * @return String
+     */
     protected String getFieldName(Field field){
 
         String fieldName;
@@ -107,6 +114,13 @@ public class TaskAnnotation {
 
     }
 
+    /**
+     * Возвращает значение поля типа Iterable
+     * С учетом аннотации MaxAmountOfDisplayedObjects
+     *
+     * @param field Обрабатываемое поле
+     * @return String
+     */
     protected  String getIterableValue(Field field) throws IllegalAccessException{
 
         String iterableValue = "{ ";
@@ -125,6 +139,13 @@ public class TaskAnnotation {
         return iterableValue +  "}";
     }
 
+    /**
+     * Возвращает значение поля типа Map
+     * С учетом аннотации MaxAmountOfDisplayedObjects
+     *
+     * @param field Обрабатываемое поле
+     * @return String
+     */
     protected  String getMapValue(Field field) throws IllegalAccessException{
 
         Map<String, String> newMap = new HashMap<String, String>();
@@ -145,21 +166,48 @@ public class TaskAnnotation {
        return newMap.toString();
     }
 
+    /**
+     * Возвращает значение maxAmount
+     * из аннотации MaxAmountOfDisplayedObjects
+     *
+     * @param field Обрабатываемое поле
+     * @return int
+     */
     protected  int getMaxAmount(Field field){
         return field.getAnnotation(MaxAmountOfDisplayedObjects.class).maxAmount();
     }
 
-    protected  boolean isAnnotationMaxAmount(Field field){
-        return field.isAnnotationPresent(MaxAmountOfDisplayedObjects.class);
-    }
-
-    protected  String getFieldValue(ValueType type, Method method) throws IllegalAccessException{
+    /**
+     * Возвращает значение метода
+     *
+     * @param type Тип этого поля
+     * @param method Обрабатуемый метод
+     * @return String
+     */
+    protected  String getFieldValue(ValueType type, Method method){
         return getFieldValue(null,type,method);
     }
-    protected  String getFieldValue(Field field, ValueType type) throws IllegalAccessException{
+
+    /**
+     * Возвращает значение поля,
+     * в зависимости от типа поля
+     *
+     * @param type Тип этого поля
+     * @return String
+     */
+    protected  String getFieldValue(Field field, ValueType type){
         return getFieldValue(field,type,null);
     }
-    protected  String getFieldValue(Field field, ValueType type, Method method) throws IllegalAccessException{
+
+    /**
+     * Возвращает значение полей или методов
+     *
+     * @param field Обрабатываемое поле
+     * @param type Тип этого поля
+     * @param method Обрабатуемый метод
+     * @return String
+     */
+    protected  String getFieldValue(Field field, ValueType type, Method method){
 
             String fieldValue = "";
 
@@ -193,6 +241,5 @@ public class TaskAnnotation {
                 }
 
             return fieldValue;
-
     }
 }
