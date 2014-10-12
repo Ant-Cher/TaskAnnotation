@@ -6,5 +6,6 @@ package main;
 public enum ValueType {
     MAP_VALUE,
     ITERABLE_VALUE,
-    OTHER_VALUE;
+    OTHER_VALUE,
+    METHOD_VALUE;
 }

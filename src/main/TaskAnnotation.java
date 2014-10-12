@@ -17,10 +17,18 @@ import java.util.*;
 
 public class TaskAnnotation {
 
-
     private static Object obj;
 
-    public String mkString(Class clazz) throws NoSuchFieldException, IllegalAccessException, ClassNotFoundException, InvocationTargetException, InstantiationException {
+
+/**
+ * Представляет класс в виде строки типа:
+ * имяКласса [имяПоля1 = значение поля1, имяПоля2 = значение поля2]
+ *
+ * @param clazz Класс который нужно обработать
+ *
+ * @return String
+ */
+    public String mkString(Class clazz) throws IllegalAccessException, InvocationTargetException, InstantiationException {
 
         List<String> list = new ArrayList<String>();
         String result = clazz.getSimpleName() + " ";
@@ -71,11 +79,9 @@ public class TaskAnnotation {
 
                 if (paramTypes.length == 0) {
                     String resultOfMethod = "";
-                    try {
-                        resultOfMethod = method.invoke(obj).toString();
-                    } catch (NullPointerException e){
-                        resultOfMethod =  "Abstract structure";
-                    }
+
+                        resultOfMethod = getFieldValue(ValueType.METHOD_VALUE,method);
+
 
                     list.add(method.getName() + p + resultOfMethod);
 
@@ -87,7 +93,7 @@ public class TaskAnnotation {
 
     }
 
-    private String getFieldName(Field field){
+    protected String getFieldName(Field field){
 
         String fieldName;
 
@@ -101,24 +107,25 @@ public class TaskAnnotation {
 
     }
 
-    private String getIterableValue(Field field) throws IllegalAccessException{
+    protected  String getIterableValue(Field field) throws IllegalAccessException{
 
         String iterableValue = "{ ";
 
-        Iterable iterable = (Iterable)field.get(obj);
+        Iterable<?> iterable = (Iterable)field.get(obj);
 
         int m = 0;
 
-        while (iterable.iterator().hasNext()) {
+        for (Iterator<?> iter = iterable.iterator(); iter.hasNext(); ) {
             if (m < getMaxAmount(field)) {
-                iterableValue += iterable.iterator().next() + " ";
-            }
+                iterableValue += iter.next() + " ";
+                m++;
+            }else break;
         }
 
-        return iterableValue + " }";
+        return iterableValue +  "}";
     }
 
-    private String getMapValue(Field field) throws IllegalAccessException{
+    protected  String getMapValue(Field field) throws IllegalAccessException{
 
         Map<String, String> newMap = new HashMap<String, String>();
 
@@ -138,25 +145,27 @@ public class TaskAnnotation {
        return newMap.toString();
     }
 
-    private int getMaxAmount(Field field){
+    protected  int getMaxAmount(Field field){
         return field.getAnnotation(MaxAmountOfDisplayedObjects.class).maxAmount();
     }
 
-    private boolean isAnnotationMaxAmount(Field field){
+    protected  boolean isAnnotationMaxAmount(Field field){
         return field.isAnnotationPresent(MaxAmountOfDisplayedObjects.class);
     }
 
-    private String getFieldValue(Field field, ValueType type) throws IllegalAccessException{
+    protected  String getFieldValue(ValueType type, Method method) throws IllegalAccessException{
+        return getFieldValue(null,type,method);
+    }
+    protected  String getFieldValue(Field field, ValueType type) throws IllegalAccessException{
+        return getFieldValue(field,type,null);
+    }
+    protected  String getFieldValue(Field field, ValueType type, Method method) throws IllegalAccessException{
 
             String fieldValue = "";
 
-            if (Modifier.isPrivate(field.getModifiers())) { // Проверка поля на модификатор доступа Private
-                fieldValue = "Private field";
-            } else {
-
                 try {
-                    switch (type) {
-
+                    switch (type) {                               // Свич нужен чтобы не пришлось дублировать код
+                                                                  // создавая несколько TryCatch'ев.
                         case MAP_VALUE:{
                             fieldValue = getMapValue(field);
                             break;
@@ -169,12 +178,19 @@ public class TaskAnnotation {
                             fieldValue = field.get(obj).toString();
                             break;
                         }
+                        case METHOD_VALUE:
+                            fieldValue = method.invoke(obj).toString();
+                            break;
+
                     }
 
                 } catch (NullPointerException e) {
                     fieldValue = null;
+                } catch (IllegalAccessException c){   // Ловим исключение, когда модификатор доступа
+                    fieldValue = "Illegal Access!";   // не позволяет получить значение поля
+                } catch (InvocationTargetException i){
+                    System.err.print("InvocationTargetException");
                 }
-            }
 
             return fieldValue;
 
