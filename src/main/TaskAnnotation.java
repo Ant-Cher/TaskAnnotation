@@ -5,11 +5,10 @@ import Annotations.NeedNull;
 import Annotations.ResultOfTheMethod;
 import Annotations.SetFieldName;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
+import java.lang.reflect.*;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Created by Aspera on 08.10.2014.
@@ -17,7 +16,9 @@ import java.util.*;
 
 public class TaskAnnotation {
 
+    private static final Logger logger = Logger.getLogger(TaskAnnotation.class.getName());
     private static Object obj;
+    private static String p = " = ";
 
 
 /**
@@ -30,11 +31,11 @@ public class TaskAnnotation {
  * @throws InvocationTargetException
  * @throws InstantiationException
  */
-    public String mkString(Class clazz) throws IllegalAccessException, InvocationTargetException, InstantiationException {
+    public String mkString(Class clazz) throws IllegalAccessException, InvocationTargetException, InstantiationException, NoSuchMethodException {
 
         List<String> list = new ArrayList<String>();
         String result = clazz.getSimpleName() + " ";
-        String p = " = ";
+
 
         if (!Modifier.isAbstract(clazz.getModifiers())){          // Если класс не абстрактный - создаем объект класса
             obj = clazz.newInstance();
@@ -54,43 +55,29 @@ public class TaskAnnotation {
 
             if (field.isAnnotationPresent(MaxAmountOfDisplayedObjects.class)) {  // Проверка на аннотацию MaxAmountOfDisplayedObjects
 
-                if (field.getType().equals(Map.class)) {
+                if (Map.class.isAssignableFrom(field.getType())) {
                     fieldValue = getFieldValue(field, ValueType.MAP_VALUE );     // Возвращение значений Map'a
 
-                } else if (field.getType().equals(Iterable.class)) {
+                } else if (Iterable.class.isAssignableFrom(field.getType())) {
                    fieldValue = getFieldValue(field, ValueType.ITERABLE_VALUE ); // Возвращение значений Iterable
 
-                }
+                } else fieldValue = getFieldValue(field,ValueType.OTHER_VALUE);
             } else {
                 fieldValue = getFieldValue(field,ValueType.OTHER_VALUE);   // Возвращение значений остальных полей
             }
 
 
-            if (field.isAnnotationPresent(NeedNull.class) || fieldValue != null) { // Проверка на аннотацию NeedNull
-
+            // Проверка на аннотацию NeedNull
+            if (field.isAnnotationPresent(NeedNull.class) || fieldValue != null ) {
                 list.add(fieldName + p + fieldValue);
-
             }
         }
 
         Method[] methods = clazz.getDeclaredMethods();
 
         for (Method method : methods) {
-
-            method.setAccessible(true);  // Делаем значение метода доступным, независимо от его модификатора приватности
-
             if (method.isAnnotationPresent(ResultOfTheMethod.class)) { // Проверка на аннотацию ResultOfTheMethod
-
-                Class[] paramTypes = method.getParameterTypes();
-
-                if (paramTypes.length == 0) {
-
-                    String resultOfMethod = "";
-
-                    resultOfMethod = getFieldValue(ValueType.METHOD_VALUE,method);
-
-                    list.add(method.getName() + p + resultOfMethod);
-                }
+                list.add(getMethod(method));
             }
         }
 
@@ -98,12 +85,39 @@ public class TaskAnnotation {
     }
 
     /**
+     * Если oбрабатываемый метод не принимает параметров,
+     * то возвращается его имя и значение в виде:
+     * имяМетода = результатМетода
+     *
+     * @param method Обрабатываемый метод
+     * @return String
+     */
+    public String getMethod(Method method){
+
+        String result = null;
+
+        method.setAccessible(true);  // Делаем значение метода доступным, независимо от его модификатора приватности
+
+            Class[] paramTypes = method.getParameterTypes();
+
+            if (paramTypes.length == 0) {
+
+                String resultOfMethod = "";
+
+                resultOfMethod = getFieldValue(ValueType.METHOD_VALUE,method);
+
+                result = method.getName() + " = " + resultOfMethod;
+            }
+
+        return result;
+    }
+    /**
      * Возвращает имя поля
      *
      * @param field Обрабатываемое поле
      * @return String
      */
-    protected String getFieldName(Field field){
+    public String getFieldName(Field field){
 
         String fieldName;
 
@@ -125,22 +139,25 @@ public class TaskAnnotation {
      * @return String
      * @throws IllegalAccessException
      */
-    protected  String getIterableValue(Field field) throws IllegalAccessException{
+    public  String getIterableValue(Field field) throws IllegalAccessException{
 
-        String iterableValue = "{ ";
+        String iterableValue = "{";
 
         Iterable<?> iterable = (Iterable)field.get(obj);
 
         int m = 0;
+        for (Object anIterable : iterable) {
 
-        for (Iterator<?> iter = iterable.iterator(); iter.hasNext(); ) {
             if (m < getMaxAmount(field)) {
-                iterableValue += iter.next() + " ";
-                m++;
-            }else break;
-        }
+                iterableValue += anIterable;
+            } else break;
 
-        return iterableValue +  "}";
+            if (m < getMaxAmount(field) - 1) {
+                iterableValue += ", ";
+            }
+            m++;
+        }
+        return  iterableValue + "}";
     }
 
     /**
@@ -151,7 +168,7 @@ public class TaskAnnotation {
      * @return String
      * @throws IllegalAccessException
      */
-    protected  String getMapValue(Field field) throws IllegalAccessException{
+    public  String getMapValue(Field field) throws IllegalAccessException{
 
         Map<String, String> newMap = new HashMap<String, String>();
 
@@ -178,7 +195,7 @@ public class TaskAnnotation {
      * @param field Обрабатываемое поле
      * @return int
      */
-    protected  int getMaxAmount(Field field){
+    public  int getMaxAmount(Field field){
         return field.getAnnotation(MaxAmountOfDisplayedObjects.class).maxAmount();
     }
 
@@ -189,7 +206,7 @@ public class TaskAnnotation {
      * @param method Обрабатуемый метод
      * @return String
      */
-    protected  String getFieldValue(ValueType type, Method method){
+    public  String getFieldValue(ValueType type, Method method){
         return getFieldValue(null,type,method);
     }
 
@@ -200,7 +217,7 @@ public class TaskAnnotation {
      * @param type Тип этого поля
      * @return String
      */
-    protected  String getFieldValue(Field field, ValueType type){
+    public  String getFieldValue(Field field, ValueType type){
         return getFieldValue(field,type,null);
     }
 
@@ -212,7 +229,7 @@ public class TaskAnnotation {
      * @param method Обрабатуемый метод
      * @return String
      */
-    protected  String getFieldValue(Field field, ValueType type, Method method){
+    public  String getFieldValue(Field field, ValueType type, Method method){
 
             String fieldValue = "";
 
@@ -239,12 +256,18 @@ public class TaskAnnotation {
 
                 } catch (NullPointerException e) {
                     fieldValue = null;
-                } catch (IllegalAccessException c){   // Ловим исключение, когда модификатор доступа
-                    fieldValue = "Illegal Access!";   // не позволяет получить значение поля
-                } catch (InvocationTargetException i){
-                    System.err.print("InvocationTargetException");
+                } catch (IllegalAccessException e){
+                    fieldValue = null;
+                    logger.log(Level.SEVERE, "IllegalAccessException" ,e);
+                } catch (InvocationTargetException e){
+                    fieldValue = null;
+                    logger.log(Level.INFO, "InvocationTargetException ", e);
+                } catch (IllegalArgumentException e){
+                    fieldValue = null;
+                    logger.log(Level.SEVERE, "IllegalArgumentException" , e);
                 }
 
             return fieldValue;
     }
+
 }
