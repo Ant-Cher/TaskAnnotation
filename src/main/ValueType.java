@@ -2,6 +2,7 @@ package main;
 
 /**
  * Created by Aspera on 12.10.2014.
+ * 
  */
 public enum ValueType {
     MAP_VALUE,

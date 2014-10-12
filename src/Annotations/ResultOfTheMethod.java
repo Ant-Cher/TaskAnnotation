@@ -11,6 +11,12 @@ import java.lang.annotation.Target;
 @Target(value= ElementType.METHOD)
 @Retention(value= RetentionPolicy.RUNTIME)
 
+/**
+ * Если метод не принимает параметров, то эта аннотация
+ * позволяет добавить в строку, выводимую методом mkString() класса TaskAnnotation,
+ * результат вывода этого метода в виде:
+ * имаМетода = результатМетода
+ */
 public @interface ResultOfTheMethod {
 
 }

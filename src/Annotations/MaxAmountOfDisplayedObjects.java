@@ -11,6 +11,11 @@ import java.lang.annotation.Target;
 @Target(value= ElementType.FIELD)
 @Retention(value= RetentionPolicy.RUNTIME)
 
+/**
+ * Позволяет контролировать количество
+ * максимально выводимых объектов у полей
+ * Iterable и Map
+ */
 public @interface MaxAmountOfDisplayedObjects {
 
     public int maxAmount();

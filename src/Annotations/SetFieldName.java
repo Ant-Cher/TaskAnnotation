@@ -12,6 +12,10 @@ import java.lang.annotation.Target;
 @Target(value= ElementType.FIELD)
 @Retention(value= RetentionPolicy.RUNTIME)
 
+/**
+ * Позволяет менять имя отображения поля
+ * при выводе строки методом mkString() класса TaskAnnotation
+ */
 public @interface SetFieldName {
 
     public String name();

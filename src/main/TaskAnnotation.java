@@ -26,6 +26,9 @@ public class TaskAnnotation {
  *
  * @param clazz Класс который нужно обработать
  * @return String
+ * @throws IllegalAccessException
+ * @throws InvocationTargetException
+ * @throws InstantiationException
  */
     public String mkString(Class clazz) throws IllegalAccessException, InvocationTargetException, InstantiationException {
 
@@ -120,6 +123,7 @@ public class TaskAnnotation {
      *
      * @param field Обрабатываемое поле
      * @return String
+     * @throws IllegalAccessException
      */
     protected  String getIterableValue(Field field) throws IllegalAccessException{
 
@@ -145,6 +149,7 @@ public class TaskAnnotation {
      *
      * @param field Обрабатываемое поле
      * @return String
+     * @throws IllegalAccessException
      */
     protected  String getMapValue(Field field) throws IllegalAccessException{
 
