@@ -36,38 +36,28 @@ public class TaskAnnotation {
         List<String> list = new ArrayList<String>();
         String result = clazz.getSimpleName() + " ";
 
-
-        if (!Modifier.isAbstract(clazz.getModifiers())){          // Если класс не абстрактный - создаем объект класса
+        if (!Modifier.isAbstract(clazz.getModifiers())){
             obj = clazz.newInstance();
         }
 
-
         Field[] fields = clazz.getDeclaredFields();
 
-
         for (Field field : fields) {
-
-            String fieldName = getFieldName(field);     // Получаем имя поля
-
+            String fieldName = getFieldName(field);
             String fieldValue = "";
+            field.setAccessible(true);
 
-            field.setAccessible(true); // Делаем значение метода доступным, независимо от его модификатора приватности
-
-            if (field.isAnnotationPresent(MaxAmountOfDisplayedObjects.class)) {  // Проверка на аннотацию MaxAmountOfDisplayedObjects
-
+            if (field.isAnnotationPresent(MaxAmountOfDisplayedObjects.class)) {
                 if (Map.class.isAssignableFrom(field.getType())) {
-                    fieldValue = getFieldValue(field, ValueType.MAP_VALUE );     // Возвращение значений Map'a
-
+                    fieldValue = getFieldValue(field, ValueType.MAP_VALUE );
                 } else if (Iterable.class.isAssignableFrom(field.getType())) {
-                   fieldValue = getFieldValue(field, ValueType.ITERABLE_VALUE ); // Возвращение значений Iterable
-
-                } else fieldValue = getFieldValue(field,ValueType.OTHER_VALUE);
+                   fieldValue = getFieldValue(field, ValueType.ITERABLE_VALUE );
+                } else
+                   fieldValue = getFieldValue(field,ValueType.OTHER_VALUE);
             } else {
-                fieldValue = getFieldValue(field,ValueType.OTHER_VALUE);   // Возвращение значений остальных полей
+                fieldValue = getFieldValue(field,ValueType.OTHER_VALUE);
             }
 
-
-            // Проверка на аннотацию NeedNull
             if (field.isAnnotationPresent(NeedNull.class) || fieldValue != null ) {
                 list.add(fieldName + p + fieldValue);
             }
@@ -76,7 +66,7 @@ public class TaskAnnotation {
         Method[] methods = clazz.getDeclaredMethods();
 
         for (Method method : methods) {
-            if (method.isAnnotationPresent(ResultOfTheMethod.class)) { // Проверка на аннотацию ResultOfTheMethod
+            if (method.isAnnotationPresent(ResultOfTheMethod.class)) {
                 list.add(getMethod(method));
             }
         }
@@ -95,20 +85,13 @@ public class TaskAnnotation {
     public String getMethod(Method method){
 
         String result = null;
-
-        method.setAccessible(true);  // Делаем значение метода доступным, независимо от его модификатора приватности
-
-            Class[] paramTypes = method.getParameterTypes();
-
+        method.setAccessible(true);
+        Class[] paramTypes = method.getParameterTypes();
             if (paramTypes.length == 0) {
-
                 String resultOfMethod = "";
-
                 resultOfMethod = getFieldValue(ValueType.METHOD_VALUE,method);
-
                 result = method.getName() + " = " + resultOfMethod;
             }
-
         return result;
     }
     /**
@@ -120,15 +103,12 @@ public class TaskAnnotation {
     public String getFieldName(Field field){
 
         String fieldName;
-
         if (field.isAnnotationPresent(SetFieldName.class)) {
             fieldName = field.getAnnotation(SetFieldName.class).name();
         } else {
             fieldName = field.getName();
         }
-
         return fieldName;
-
     }
 
     /**
@@ -142,16 +122,13 @@ public class TaskAnnotation {
     public  String getIterableValue(Field field) throws IllegalAccessException{
 
         String iterableValue = "{";
-
         Iterable<?> iterable = (Iterable)field.get(obj);
-
         int m = 0;
-        for (Object anIterable : iterable) {
 
+        for (Object anIterable : iterable) {
             if (m < getMaxAmount(field)) {
                 iterableValue += anIterable;
             } else break;
-
             if (m < getMaxAmount(field) - 1) {
                 iterableValue += ", ";
             }
@@ -171,20 +148,15 @@ public class TaskAnnotation {
     public  String getMapValue(Field field) throws IllegalAccessException{
 
         Map<String, String> newMap = new HashMap<String, String>();
-
         Map<?, ?> map = (Map)field.get(obj);
-
         int m = 0;
 
         for (Map.Entry entry : map.entrySet()) {
-
             if (m < getMaxAmount(field)) {
                 newMap.put(entry.getKey().toString(), entry.getValue().toString());
             }
-
             m++;
         }
-
        return newMap.toString();
     }
 
@@ -234,8 +206,7 @@ public class TaskAnnotation {
             String fieldValue = "";
 
                 try {
-                    switch (type) {                               // Свич нужен чтобы не пришлось дублировать код
-                                                                  // создавая несколько TryCatch'ев.
+                    switch (type) {
                         case MAP_VALUE:{
                             fieldValue = getMapValue(field);
                             break;
@@ -251,7 +222,6 @@ public class TaskAnnotation {
                         case METHOD_VALUE:
                             fieldValue = method.invoke(obj).toString();
                             break;
-
                     }
 
                 } catch (NullPointerException e) {
